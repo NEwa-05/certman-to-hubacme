@@ -1,0 +1,15 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: myissuer
+  namespace: whoami
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: david.blaskow@traefik.io
+    privateKeySecretRef:
+      name: my-account-key
+    solvers:
+    - http01:
+        ingress:
+          ingressClassName: traefik-1

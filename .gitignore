@@ -1,0 +1,5 @@
+.env
+kubeconfig
+certman-cert.yaml
+hub-cert.yaml
+testcert.yaml

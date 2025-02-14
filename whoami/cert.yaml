@@ -1,0 +1,13 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: whoami-1-cert-staging
+  namespace: whoami
+spec:
+  commonName: whoami-1.1.${CLUSTERNAME}.${DOMAINNAME}
+  secretName: whoami-1-cert-staging
+  dnsNames:
+    - whoami-1.1.${CLUSTERNAME}.${DOMAINNAME}
+  issuerRef:
+    kind: ClusterIssuer
+    name: myissuer

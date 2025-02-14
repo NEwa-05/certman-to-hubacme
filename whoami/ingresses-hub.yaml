@@ -1,0 +1,19 @@
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: whoami-ingress
+  namespace: whoami
+  annotations:
+    kubernetes.io/ingress.class: traefikhub
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`whoami.1.${CLUSTERNAME}.${DOMAINNAME}`)
+      services:
+        - name: whoami
+          port: 80
+  tls:
+    certResolver: le
