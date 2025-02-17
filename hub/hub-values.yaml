@@ -59,8 +59,9 @@ ports:
 additionalArguments:
   - '--certificatesresolvers.le.distributedAcme=true'
   - '--certificatesresolvers.le.distributedAcme.email=david.blaskow@traefik.io'
-  - '--certificatesresolvers.le.distributedAcme.tlschallenge=true'
+  - '--certificatesresolvers.le.distributedAcme.httpchallenge.entrypoint=web'
   - '--certificatesresolvers.le.distributedAcme.storage.kubernetes=true'
+  - '--certificatesresolvers.le.distributedAcme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory'
 hub:
   token: hub-license
   apimanagement:

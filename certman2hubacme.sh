@@ -1,8 +1,19 @@
 #! /bin/bash
 
 ## get values
+IFS=$'\n'; for i in $(kubectl get secret -A --selector controller.cert-manager.io/fao=true --no-headers -o custom-columns=NAMESPACE:.metadata.namespace,NAME:.metadata.name); do
+  NAMESPACE=$(echo $i | awk -F " " '{print $1}')
+  echo "ns name: " $NAMESPACE
+  SECNAME=$(echo $i | awk -F " " '{print $2}')
+  echo "secret name: "  $SECNAME
+  DOMAIN=$(kubectl get secret -n $NAMESPACE $SECNAME -o yaml| yq '.metadata.annotations["cert-manager.io/common-name"]')
+  echo "domain: "  $DOMAIN
+  DOMAIN64=$(echo -e $DOMAIN|base64)
+  echo "domain64: "  $DOMAIN64
+done
 
-DOMAIN=$(echo -e $(yq '.metadata.annotations["cert-manager.io/common-name"]' certman-cert.yaml)|base64) 
+  DOMAIN=$(echo -e $(yq '.metadata.annotations["cert-manager.io/common-name"]' certman-cert.yaml)|base64) 
+DOMAIN=$()
 STORE=$(echo -e $1|base64)
 CERT=$(yq '.data["tls.crt"]' certman-cert.yaml)
 KEY=$(yq '.data["tls.key"]' certman-cert.yaml)

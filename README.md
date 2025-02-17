@@ -15,7 +15,7 @@ helm install cert-manager jetstack/cert-manager --namespace cert-manager --creat
 ### Deploy issuer
 
 ```bash
-k apply -f whoami/issuer.yaml
+k apply -f cert-manager/issuer.yaml
 ```
 
 ## Deploy Traefik OSS
