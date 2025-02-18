@@ -1,33 +1,28 @@
 #! /bin/bash
 
+## scale down
+
+kubectl scale --replicas=0 deployment/traefik -n $2
+
 ## get values
+
+HUBCERTRESOLVER=$(kubectl get secret -n $2 --no-headers -o custom-columns=NAME:.metadata.name|grep hub-cert-resolver-account)
+HUBOWNERUID=$(kubectl get secret -n $2 $HUBCERTRESOLVER -o yaml|yq '.metadata.uid')
 IFS=$'\n'; for i in $(kubectl get secret -A --selector controller.cert-manager.io/fao=true --no-headers -o custom-columns=NAMESPACE:.metadata.namespace,NAME:.metadata.name); do
-  NAMESPACE=$(echo $i | awk -F " " '{print $1}')
-  echo "ns name: " $NAMESPACE
-  SECNAME=$(echo $i | awk -F " " '{print $2}')
-  echo "secret name: "  $SECNAME
-  DOMAIN=$(kubectl get secret -n $NAMESPACE $SECNAME -o yaml| yq '.metadata.annotations["cert-manager.io/common-name"]')
-  echo "domain: "  $DOMAIN
-  DOMAIN64=$(echo -e $DOMAIN|base64)
-  echo "domain64: "  $DOMAIN64
-done
-
-  DOMAIN=$(echo -e $(yq '.metadata.annotations["cert-manager.io/common-name"]' certman-cert.yaml)|base64) 
-DOMAIN=$()
-STORE=$(echo -e $1|base64)
-CERT=$(yq '.data["tls.crt"]' certman-cert.yaml)
-KEY=$(yq '.data["tls.key"]' certman-cert.yaml)
-SECRETNAME=$(yq '.metadata.name' certman-cert.yaml)
-#HUBCERTRESOLVER=$(kubectl get secret -n $2 |grep hub-cert-resolver-account |awk -F" " '{print $2}')
-HUBCERTRESOLVER="hub-cert-resolver-account-08809529eaab1be95aa0733055a642ca"
-
+  NAMESPACE=$(echo $i|awk -F " " '{print $1}')
+  SECNAME=$(echo $i|awk -F " " '{print $2}')
+  SECCONTENT=$(kubectl get secret -n $NAMESPACE $SECNAME -o yaml)
+  DOMAIN=$(printf '%s' "$SECCONTENT"|yq '.metadata.annotations["cert-manager.io/common-name"]')
+  JSONDOMAIN64=$(printf {\"main\":\"$DOMAIN\"}|base64)
+  STORE64=$(printf 'default'|base64)
+  CERT64=$(printf '%s' "$SECCONTENT"|yq '.data["tls.crt"]')
+  KEY64=$(printf '%s' "$SECCONTENT"|yq '.data["tls.key"]')
 ## Gen secret
-
-tee testcert.yaml <<EOF
+  kubectl create -f - <<EOF
 apiVersion: v1
 kind: Secret
 metadata:
-  name: ${SECRETNAME}-hub-acmecert
+  name: ${SECNAME}-hub-acmecert
   namespace: $2
   labels:
     app.kubernetes.io/component: acme-certificate
@@ -37,10 +32,17 @@ metadata:
   - apiVersion: v1
     kind: Secret
     name: ${HUBCERTRESOLVER}
+    uid: ${HUBOWNERUID}
 type: kubernetes.io/tls
 data:
-  domain: ${DOMAIN}
-  store: ${STORE}
-  tls.crt: ${CERT}
-  tls.key: ${KEY}
+  domain: ${JSONDOMAIN64}
+  store: ${STORE64}
+  tls.crt: ${CERT64}
+  tls.key: ${KEY64}
+
 EOF
+done
+
+## scale up
+
+kubectl scale --replicas=1 deployment/traefik -n $2

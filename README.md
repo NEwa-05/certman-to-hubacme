@@ -113,27 +113,18 @@ curl -s -X POST -d $ADDRECORD \
 envsubst < hub/ingress.yaml | kubectl apply -f -
 ```
 
+### migrate certs
+
+```bash
+bash certman2hubacme.sh ${CERTRESOLVERNAME} ${HUBNS}
+```
+
 ### Set DNS alias for migrated app
 
 ```bash
 ADDRECORD='{
   "rrset_type": "CNAME",
   "rrset_name": "whoami.1.'$CLUSTERNAME'",
-  "rrset_ttl": "1800",
-  "rrset_values": [
-    "'$(kubectl get svc/traefik -n traefik --no-headers | awk {'print $4'})'."
-  ]
-}'
-curl -s -X POST -d $ADDRECORD \
-  -H "Authorization: Apikey $GANDIV5_API_KEY" \
-  -H "Content-Type: application/json" \
-  https://api.gandi.net/v5/livedns/domains/$DOMAINNAME/records
-```
-
-```bash
-ADDRECORD='{
-  "rrset_type": "CNAME",
-  "rrset_name": "whoami.2.'$CLUSTERNAME'",
   "rrset_ttl": "1800",
   "rrset_values": [
     "'$(kubectl get svc/traefik -n traefik --no-headers | awk {'print $4'})'."
