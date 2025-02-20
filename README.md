@@ -1,6 +1,10 @@
 # certman-to-hubacme
 
-Testing cert-manager to hub distributed acme certs migration. 
+Testing cert-manager to hub distributed acme certs migration.
+
+## Requirements
+
+- [yq](https://github.com/mikefarah/yq)
 
 ## Deploy cert-manager
 
