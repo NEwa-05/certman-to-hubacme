@@ -120,7 +120,7 @@ envsubst < hub/ingress.yaml | kubectl apply -f -
 ### migrate certs
 
 ```bash
-bash certman2hubacme.sh ${CERTRESOLVERNAME} ${HUBNS}
+bash certman2hubacme.sh ${CERTRESOLVERNAME} ${TRAEFIKNS} ${TRAEFIKTLSSTORE} ${CERTMANAGERNS} ${ISSUERTYPE} ${ISSUERNAME} ${ISSUERPRIVATEKEYNAME}
 ```
 
 ### Set DNS alias for migrated app
