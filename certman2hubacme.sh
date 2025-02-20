@@ -8,6 +8,10 @@ kubectl scale --replicas=0 deployment/traefik -n $2
 
 HUBCERTRESOLVER=$(kubectl get secret -n $2 --no-headers -o custom-columns=NAME:.metadata.name|grep hub-cert-resolver-account)
 HUBOWNERUID=$(kubectl get secret -n $2 $HUBCERTRESOLVER -o yaml|yq '.metadata.uid')
+ISSACC=$(kubectl get clusterissuer -n cert-manager myissuer -o yaml|yq '.status.acme.uri')
+ISSMAIL=$(kubectl get clusterissuer -n cert-manager myissuer -o yaml|yq '.spec.acme.email')
+ISSKEY=$(kubectl get secret -n cert-manager my-account-key -o yaml| yq '.data."tls.key"'|base64 -d|sed '1d; $d'|tr -d '\n')
+ISSKEYLEN=$(kubectl get secret -n cert-manager my-account-key -o yaml| yq '.data."tls.key"'|base64 -d|openssl rsa -in /dev/stdin -text -noout|grep "Private-Key"|sed -n 's/.*Private-Key: (\([0-9]*\).*/\1/p')
 IFS=$'\n'; for i in $(kubectl get secret -A --selector controller.cert-manager.io/fao=true --no-headers -o custom-columns=NAMESPACE:.metadata.namespace,NAME:.metadata.name); do
   NAMESPACE=$(echo $i|awk -F " " '{print $1}')
   SECNAME=$(echo $i|awk -F " " '{print $2}')
@@ -17,6 +21,9 @@ IFS=$'\n'; for i in $(kubectl get secret -A --selector controller.cert-manager.i
   STORE64=$(printf 'default'|base64)
   CERT64=$(printf '%s' "$SECCONTENT"|yq '.data["tls.crt"]')
   KEY64=$(printf '%s' "$SECCONTENT"|yq '.data["tls.key"]')
+## Update Hub resolver account
+RESACC64=$(echo -e '{"Email":"'${ISSMAIL}'","Registration":{"body":{"status":"valid","contact":["mailto:'${ISSMAIL}'"]},"uri":"'${ISSACC}'"},"PrivateKey":"'${ISSKEY}'","KeyType":"'${ISSKEYLEN}'"}'|base64)
+kubectl patch secret -n $2 $HUBCERTRESOLVER --type='json' -p="[{"op" : "replace" ,"path" : "/data/account" ,"value" : "${RESACC64}"}]"
 ## Gen secret
   kubectl create -f - <<EOF
 apiVersion: v1

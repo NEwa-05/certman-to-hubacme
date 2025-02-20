@@ -8,12 +8,10 @@ metadata:
     kubernetes.io/ingress.class: traefikhub
 spec:
   entryPoints:
-    - websecure
+    - web
   routes:
     - kind: Rule
       match: Host(`hub.${CLUSTERNAME}.${DOMAINNAME}`)
       services:
         - name: api@internal
           kind: TraefikService
-  tls:
-    certResolver: le

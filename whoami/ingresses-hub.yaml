@@ -11,7 +11,7 @@ spec:
     - websecure
   routes:
     - kind: Rule
-      match: Host(`whoami-1.1.${CLUSTERNAME}.${DOMAINNAME}`)
+      match: Host(`whoami.1.${CLUSTERNAME}.${DOMAINNAME}`)
       services:
         - name: whoami
           port: 80
