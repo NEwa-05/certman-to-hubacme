@@ -1,5 +1,13 @@
 #! /bin/bash
 
+if [ $# -ne 7 ]
+then
+    echo "You are missing some argument to run this script, only $# parameters have been set.
+To run this script here's what you need:
+  $0 resolver_name traefik_namespace traefik_store cert-manager_namespace issuer_type issuer_name cert-manager_private-key"
+  exit
+fi
+
 ## scale down
 
 kubectl scale --replicas=0 deployment/traefik -n $2
@@ -8,17 +16,19 @@ kubectl scale --replicas=0 deployment/traefik -n $2
 
 HUBCERTRESOLVER=$(kubectl get secret -n $2 --no-headers -o custom-columns=NAME:.metadata.name|grep hub-cert-resolver-account)
 HUBOWNERUID=$(kubectl get secret -n $2 $HUBCERTRESOLVER -o yaml|yq '.metadata.uid')
-ISSACC=$(kubectl get clusterissuer -n cert-manager myissuer -o yaml|yq '.status.acme.uri')
-ISSMAIL=$(kubectl get clusterissuer -n cert-manager myissuer -o yaml|yq '.spec.acme.email')
-ISSKEY=$(kubectl get secret -n cert-manager my-account-key -o yaml| yq '.data."tls.key"'|base64 -d|sed '1d; $d'|tr -d '\n')
-ISSKEYLEN=$(kubectl get secret -n cert-manager my-account-key -o yaml| yq '.data."tls.key"'|base64 -d|openssl rsa -in /dev/stdin -text -noout|grep "Private-Key"|sed -n 's/.*Private-Key: (\([0-9]*\).*/\1/p')
+ISSDATA=$(kubectl get $5 -n $4 $6 -o yaml)
+ISSACC=$(printf '%s' "$ISSDATA"|yq '.status.acme.uri')
+ISSMAIL=$(printf '%s' "$ISSDATA"|yq '.spec.acme.email')
+ISSSECDATA=$(kubectl get secret -n $4 $7 -o yaml)
+ISSKEY=$(printf '%s' "$ISSSECDATA"| yq '.data."tls.key"'|base64 -d|sed '1d; $d'|tr -d '\n')
+ISSKEYLEN=$(printf '%s' "$ISSSECDATA"| yq '.data."tls.key"'|base64 -d|openssl rsa -in /dev/stdin -text -noout|grep "Private-Key"|sed -n 's/.*Private-Key: (\([0-9]*\).*/\1/p')
 IFS=$'\n'; for i in $(kubectl get secret -A --selector controller.cert-manager.io/fao=true --no-headers -o custom-columns=NAMESPACE:.metadata.namespace,NAME:.metadata.name); do
   NAMESPACE=$(echo $i|awk -F " " '{print $1}')
   SECNAME=$(echo $i|awk -F " " '{print $2}')
   SECCONTENT=$(kubectl get secret -n $NAMESPACE $SECNAME -o yaml)
   DOMAIN=$(printf '%s' "$SECCONTENT"|yq '.metadata.annotations["cert-manager.io/common-name"]')
   JSONDOMAIN64=$(printf {\"main\":\"$DOMAIN\"}|base64)
-  STORE64=$(printf 'default'|base64)
+  STORE64=$(printf '%s' "$3" |base64)
   CERT64=$(printf '%s' "$SECCONTENT"|yq '.data["tls.crt"]')
   KEY64=$(printf '%s' "$SECCONTENT"|yq '.data["tls.key"]')
 ## Update Hub resolver account
